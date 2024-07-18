@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -6,11 +6,22 @@ import {
   FlatList,
   StatusBar,
   useColorScheme,
+  View,
 } from 'react-native';
+import {
+  getDBConnection,
+  createExpensesTable,
+  addExpense,
+  getExpenses,
+  updateExpense,
+  deleteExpense,
+  closeDB,
+} from './database/database';
 import ExpenseForm from './src/components/ExpenseForm';
 import ExpenseItem from './src/components/ExpenseItem';
 
 type Expense = {
+  id: number;
   description: string;
   amount: string;
   date: string;
@@ -18,46 +29,82 @@ type Expense = {
 
 function App(): React.JSX.Element {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [editId, setEditId] = useState<number | null>(null);
 
-  const addExpense = (description: string, amount: string) => {
-    const newExpense: Expense = {
-      description,
-      amount,
-      date: new Date().toLocaleString(),
+  useEffect(() => {
+    const loadData = async () => {
+      const db = await getDBConnection();
+      await createExpensesTable(db);
+      const allExpenses = await getExpenses(db);
+      setExpenses(allExpenses);
+      await closeDB(db);
     };
-    setExpenses([...expenses, newExpense]);
+
+    loadData();
+  }, []);
+
+  const handleAddOrUpdateExpense = async (
+    description: string,
+    amount: string,
+  ) => {
+    const db = await getDBConnection();
+    if (editId !== null) {
+      await updateExpense(
+        db,
+        editId,
+        description,
+        parseFloat(amount),
+        new Date().toISOString(),
+      );
+      setEditId(null);
+    } else {
+      await addExpense(
+        db,
+        description,
+        parseFloat(amount),
+        new Date().toISOString(),
+      );
+    }
+    const allExpenses = await getExpenses(db);
+    setExpenses(allExpenses);
+    await closeDB(db);
   };
 
-  const deleteExpense = (index: number) => {
-    setExpenses(expenses.filter((_, i) => i !== index));
+  const handleDeleteExpense = async (id: number) => {
+    const db = await getDBConnection();
+    await deleteExpense(db, id);
+    const allExpenses = await getExpenses(db);
+    setExpenses(allExpenses);
+    await closeDB(db);
   };
 
   const isDarkMode = useColorScheme() === 'dark';
   const backgroundStyle = {
     backgroundColor: isDarkMode ? '#333' : '#FFF',
     flex: 1,
-    padding: 16,
   };
 
   return (
     <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <Text style={[styles.title, {color: isDarkMode ? '#FFF' : '#000'}]}>
-        Expense Tracker
-      </Text>
-      <ExpenseForm onAddExpense={addExpense} />
-      <FlatList
-        data={expenses}
-        renderItem={({item, index}) => (
-          <ExpenseItem
-            description={item.description}
-            amount={item.amount}
-            date={item.date}
-            onDelete={() => deleteExpense(index)}
-          />
-        )}
-        keyExtractor={(item, index) => index.toString()}
-      />
+      <View style={{padding: 20}}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <Text style={[styles.title, {color: isDarkMode ? '#FFF' : '#000'}]}>
+          Expense Tracker
+        </Text>
+        <ExpenseForm onAddExpense={handleAddOrUpdateExpense} />
+        <FlatList
+          data={expenses}
+          renderItem={({item}) => (
+            <ExpenseItem
+              description={item.description}
+              amount={item.amount.toString()}
+              date={item.date}
+              onDelete={() => handleDeleteExpense(item.id)}
+            />
+          )}
+          keyExtractor={item => item.id.toString()}
+        />
+      </View>
     </SafeAreaView>
   );
 }
