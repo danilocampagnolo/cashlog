@@ -1,4 +1,5 @@
 import SQLite from 'react-native-sqlite-storage';
+import type {Expense} from '../src/types/expense';
 
 SQLite.enablePromise(true);
 
@@ -31,19 +32,17 @@ export const addExpense = async (
   amount: number,
   date: string,
 ) => {
-  const query = `INSERT INTO Expenses (description, amount, date) VALUES (?, ?, ?)`;
+  const query =
+    'INSERT INTO Expenses (description, amount, date) VALUES (?, ?, ?)';
   await db.executeSql(query, [description, amount, date]);
 };
 
-export const getExpenses = async (db: SQLite.SQLiteDatabase) => {
-  const query = `SELECT * FROM Expenses`;
+export const getExpenses = async (
+  db: SQLite.SQLiteDatabase,
+): Promise<Expense[]> => {
+  const query = 'SELECT * FROM Expenses';
   const results = await db.executeSql(query);
-  let expenses: {
-    id: number;
-    description: string;
-    amount: number;
-    date: string;
-  }[] = [];
+  let expenses: Expense[] = [];
   results.forEach(result => {
     for (let i = 0; i < result.rows.length; i++) {
       expenses.push(result.rows.item(i));
@@ -59,12 +58,13 @@ export const updateExpense = async (
   amount: number,
   date: string,
 ) => {
-  const query = `UPDATE Expenses SET description = ?, amount = ?, date = ? WHERE id = ?`;
+  const query =
+    'UPDATE Expenses SET description = ?, amount = ?, date = ? WHERE id = ?';
   await db.executeSql(query, [description, amount, date, id]);
 };
 
 export const deleteExpense = async (db: SQLite.SQLiteDatabase, id: number) => {
-  const query = `DELETE FROM Expenses WHERE id = ?`;
+  const query = 'DELETE FROM Expenses WHERE id = ?';
   await db.executeSql(query, [id]);
 };
 

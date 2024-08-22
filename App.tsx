@@ -19,13 +19,7 @@ import {
 } from './database/database';
 import ExpenseForm from './src/components/ExpenseForm';
 import ExpenseItem from './src/components/ExpenseItem';
-
-type Expense = {
-  id: number;
-  description: string;
-  amount: string;
-  date: string;
-};
+import type {Expense} from './src/types/expense';
 
 function App(): React.JSX.Element {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -39,6 +33,8 @@ function App(): React.JSX.Element {
       setExpenses(allExpenses);
       await closeDB(db);
     };
+
+    console.log('Loading data');
 
     loadData();
   }, []);
